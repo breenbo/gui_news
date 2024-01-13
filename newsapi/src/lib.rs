@@ -3,7 +3,6 @@ use colour::{dark_green, grey};
 use reqwest::Method;
 
 use serde::Deserialize;
-use ureq::request;
 use url::Url;
 
 const BASE_URL: &str = "https://newsapi.org/v2/";

@@ -1,6 +1,6 @@
 use eframe::{
     egui::{
-        self, Button, Context, FontData, FontDefinitions, Label, Layout, RichText, Separator,
+        self, Button, Context, FontData, FontDefinitions, Layout, RichText, Separator,
         TopBottomPanel,
     },
     epaint::{Color32, FontFamily},
@@ -14,8 +14,19 @@ const WHITE: Color32 = Color32::WHITE;
 const BLUE: Color32 = Color32::BLUE;
 
 #[derive(Default)]
+pub struct HeadlineConfig {
+    pub dark_mode: bool,
+}
+impl HeadlineConfig {
+    fn new() -> Self {
+        Self { dark_mode: true }
+    }
+}
+
+#[derive(Default)]
 pub struct Headlines {
     articles: Vec<NewCardData>,
+    pub config: HeadlineConfig,
 }
 
 impl Headlines {
@@ -33,6 +44,7 @@ impl Headlines {
 
         Self {
             articles: Vec::from_iter(iter),
+            config: HeadlineConfig::new(),
         }
     }
 
@@ -61,10 +73,18 @@ impl Headlines {
             //
             ui.add_space(PADDING);
             let formated_title = format!("\u{25B6} {}", &a.title);
-            let title_label = RichText::new(formated_title)
-                .size(TITLE_FONT_SIZE)
-                .color(WHITE);
-            ui.label(title_label);
+
+            if self.config.dark_mode {
+                let title_label = RichText::new(formated_title)
+                    .size(TITLE_FONT_SIZE)
+                    .color(WHITE);
+                ui.label(title_label);
+            } else {
+                let title_label = RichText::new(formated_title)
+                    .size(TITLE_FONT_SIZE)
+                    .color(Color32::BLACK);
+                ui.label(title_label);
+            };
             //
             // render desc
             //
@@ -85,7 +105,7 @@ impl Headlines {
         }
     }
 
-    pub fn render_top_panel(&self, ctx: &Context) {
+    pub fn render_top_panel(&mut self, ctx: &Context) {
         TopBottomPanel::top("topPanel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.with_layout(Layout::left_to_right(egui::Align::TOP), |ui| {
@@ -93,12 +113,21 @@ impl Headlines {
                 });
                 //
                 ui.with_layout(Layout::right_to_left(egui::Align::TOP), |ui| {
-                    let close_btn =
-                        ui.add(Button::new(RichText::new("\u{1F5D9}").size(DESC_FONT_SIZE)));
+                    //
+                    // let close_btn =
+                    //     ui.add(Button::new(RichText::new("\u{1F5D9}").size(DESC_FONT_SIZE)));
+                    // if close_btn.clicked() {
+                    //     frame.quit();
+                    // }
+                    //
                     let refresh_btn =
                         ui.add(Button::new(RichText::new("\u{21BA}").size(DESC_FONT_SIZE)));
+                    //
                     let theme_btn =
                         ui.add(Button::new(RichText::new("\u{262F}").size(DESC_FONT_SIZE)));
+                    if theme_btn.clicked() {
+                        self.config.dark_mode = !self.config.dark_mode;
+                    }
                 })
             });
         });

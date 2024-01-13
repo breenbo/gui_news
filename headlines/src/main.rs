@@ -1,7 +1,9 @@
 mod headlines;
 
 use eframe::{
-    egui::{CentralPanel, Context, RichText, ScrollArea, Separator, TopBottomPanel, Ui, Vec2},
+    egui::{
+        CentralPanel, Context, RichText, ScrollArea, Separator, TopBottomPanel, Ui, Vec2, Visuals,
+    },
     epaint::Color32,
     run_native, App, NativeOptions,
 };
@@ -10,11 +12,17 @@ use headlines::Headlines;
 impl App for Headlines {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         //
+        if self.config.dark_mode {
+            ctx.set_visuals(Visuals::dark())
+        } else {
+            ctx.set_visuals(Visuals::light())
+        }
+        //
         self.render_top_panel(ctx);
         //
         CentralPanel::default().show(ctx, |ui| {
             //
-            render_header(ui);
+            render_header(ui, self.config.dark_mode);
             //
             ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
                 self.render_news_cards(ui);
@@ -36,13 +44,20 @@ fn render_footer(ctx: &Context) {
     });
 }
 
-fn render_header(ui: &mut Ui) {
+fn render_header(ui: &mut Ui, dark: bool) {
     ui.vertical_centered(|ui| {
         ui.add_space(headlines::PADDING);
-        let head = RichText::new("Headlines")
-            .color(Color32::WHITE)
-            .size(headlines::TITLE_FONT_SIZE);
-        ui.heading(head);
+        if dark {
+            let head = RichText::new("Headlines")
+                .color(Color32::WHITE)
+                .size(headlines::TITLE_FONT_SIZE);
+            ui.heading(head);
+        } else {
+            let head = RichText::new("Headlines")
+                .color(Color32::BLACK)
+                .size(headlines::TITLE_FONT_SIZE);
+            ui.heading(head);
+        }
         //
         ui.add_space(headlines::PADDING);
         let sep = Separator::default().spacing(20.);

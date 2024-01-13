@@ -1,13 +1,13 @@
 use eframe::{
     egui::{
-        CentralPanel, Context, FontData, FontDefinitions, Layout, RichText, ScrollArea, Separator,
+        self, Button, Context, FontData, FontDefinitions, Label, Layout, RichText, Separator,
+        TopBottomPanel,
     },
     epaint::{Color32, FontFamily},
-    App,
 };
 
-const PADDING: f32 = 10.;
-const TITLE_FONT_SIZE: f32 = 30.;
+pub const PADDING: f32 = 10.;
+pub const TITLE_FONT_SIZE: f32 = 30.;
 const DESC_FONT_SIZE: f32 = 25.;
 const URL_FONT_SIZE: f32 = 20.;
 const WHITE: Color32 = Color32::WHITE;
@@ -54,13 +54,13 @@ impl Headlines {
         ctx.set_fonts(fonts_def);
     }
 
-    fn render_news_cards(&self, ui: &mut eframe::egui::Ui) {
+    pub fn render_news_cards(&self, ui: &mut eframe::egui::Ui) {
         for a in &self.articles {
             //
             // render title
             //
             ui.add_space(PADDING);
-            let formated_title = format!("> {}", &a.title);
+            let formated_title = format!("\u{25B6} {}", &a.title);
             let title_label = RichText::new(formated_title)
                 .size(TITLE_FONT_SIZE)
                 .color(WHITE);
@@ -75,7 +75,7 @@ impl Headlines {
             //
             ui.add_space(PADDING);
             ui.style_mut().visuals.hyperlink_color = BLUE;
-            let url_label = RichText::new("Read more...").size(URL_FONT_SIZE);
+            let url_label = RichText::new("Read more \u{2934}").size(URL_FONT_SIZE);
             ui.with_layout(Layout::right_to_left(eframe::egui::Align::TOP), |ui| {
                 ui.hyperlink_to(url_label, &a.url)
             });
@@ -84,14 +84,22 @@ impl Headlines {
             ui.add_space(PADDING);
         }
     }
-}
 
-impl App for Headlines {
-    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        CentralPanel::default().show(ctx, |ui| {
-            //
-            ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-                self.render_news_cards(ui);
+    pub fn render_top_panel(&self, ctx: &Context) {
+        TopBottomPanel::top("topPanel").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.with_layout(Layout::left_to_right(egui::Align::TOP), |ui| {
+                    ui.label(RichText::new("\u{269B}").size(DESC_FONT_SIZE));
+                });
+                //
+                ui.with_layout(Layout::right_to_left(egui::Align::TOP), |ui| {
+                    let close_btn =
+                        ui.add(Button::new(RichText::new("\u{1F5D9}").size(DESC_FONT_SIZE)));
+                    let refresh_btn =
+                        ui.add(Button::new(RichText::new("\u{21BA}").size(DESC_FONT_SIZE)));
+                    let theme_btn =
+                        ui.add(Button::new(RichText::new("\u{262F}").size(DESC_FONT_SIZE)));
+                })
             });
         });
     }

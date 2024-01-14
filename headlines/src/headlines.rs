@@ -1,54 +1,71 @@
 use eframe::{
     egui::{
         self, Button, Context, FontData, FontDefinitions, Layout, RichText, Separator,
-        TopBottomPanel,
+        TopBottomPanel, Window,
     },
     epaint::{Color32, FontFamily},
 };
+use newsapi::NewsAPI;
+use serde::{Deserialize, Serialize};
 
 pub const PADDING: f32 = 10.;
-pub const TITLE_FONT_SIZE: f32 = 30.;
-const DESC_FONT_SIZE: f32 = 25.;
-const URL_FONT_SIZE: f32 = 20.;
+pub const TITLE_FONT_SIZE: f32 = 20.;
+const DESC_FONT_SIZE: f32 = 20.;
+const URL_FONT_SIZE: f32 = 15.;
 const WHITE: Color32 = Color32::WHITE;
 const BLUE: Color32 = Color32::BLUE;
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct HeadlineConfig {
     pub dark_mode: bool,
+    api_key: String,
 }
-impl HeadlineConfig {
-    fn new() -> Self {
-        Self { dark_mode: true }
-    }
-}
+
+// impl HeadlineConfig {
+//     fn new() -> Self {
+//         Self {
+//             dark_mode: true,
+//             api_key: String::new(),
+//         }
+//     }
+// }
 
 #[derive(Default)]
 pub struct Headlines {
     articles: Vec<NewCardData>,
     pub config: HeadlineConfig,
+    pub api_key_initialized: bool,
 }
 
 impl Headlines {
+    pub fn new() -> Self {
+        // let iter = (0..20).map(|a| NewCardData {
+        //     title: format!("title{}", a),
+        //     desc: format!("text{}", a),
+        //     url: format!("https://www.example.com/{}", a),
+        // });
+        // use confy to store config on user drive
+        let config: HeadlineConfig = confy::load("gui_news", "headlines").unwrap_or_default();
+
+        Self {
+            api_key_initialized: !config.api_key.is_empty(),
+            articles: vec![],
+            config,
+        }
+    }
+
+    pub fn init(mut self, cc: &eframe::CreationContext<'_>) -> Self {
+        fetch_news(&self.config.api_key, &mut self.articles);
+        self.configure_font(&cc.egui_ctx);
+        //
+        self
+    }
+
     pub fn name() -> &'static str {
         "News Headlines"
     }
 
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        let iter = (0..20).map(|a| NewCardData {
-            title: format!("title{}", a),
-            desc: format!("text{}", a),
-            url: format!("https://www.example.com/{}", a),
-        });
-        Self::configure_font(&cc.egui_ctx);
-
-        Self {
-            articles: Vec::from_iter(iter),
-            config: HeadlineConfig::new(),
-        }
-    }
-
-    fn configure_font(ctx: &Context) {
+    fn configure_font(&self, ctx: &Context) {
         // create font object
         let mut fonts_def = FontDefinitions::default();
         // load the font from file
@@ -89,7 +106,10 @@ impl Headlines {
             // render desc
             //
             ui.add_space(PADDING);
-            ui.label(RichText::new(&a.desc).size(DESC_FONT_SIZE));
+            ui.label(
+                RichText::new(&a.description.clone().unwrap_or("...".to_string()))
+                    .size(DESC_FONT_SIZE),
+            );
             //
             // render url
             //
@@ -132,10 +152,60 @@ impl Headlines {
             });
         });
     }
+
+    pub fn render_config(&mut self, ctx: &Context) {
+        Window::new("Configuration").show(ctx, |ui| {
+            ui.label("Enter your API Key for NYT: ");
+            let text_input = ui.text_edit_singleline(&mut self.config.api_key);
+            //
+            // store api_key on lost focus or enter pressed
+            //
+            if text_input.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                if let Err(e) = confy::store(
+                    "gui_news",
+                    "headlines",
+                    HeadlineConfig {
+                        dark_mode: self.config.dark_mode,
+                        api_key: self.config.api_key.to_string(),
+                    },
+                ) {
+                    tracing::error!("Error saving API key: {}", e);
+                };
+
+                tracing::info!("API key set");
+                self.api_key_initialized = true;
+            }
+            //
+            //
+            ui.add_space(10.)
+        });
+    }
 }
 
-struct NewCardData {
-    title: String,
-    desc: String,
-    url: String,
+fn fetch_news(api_key: &str, articles: &mut Vec<NewCardData>) {
+    if let Ok(response) = NewsAPI::new(api_key).fetch() {
+        let res_articles = response.articles;
+        for a in res_articles.iter() {
+            let news = NewCardData {
+                title: a.title.to_string(),
+                url: a.url.to_string(),
+                description: Some(
+                    a.description
+                        .as_ref()
+                        .map(|s| s.to_string())
+                        .unwrap_or("...".to_string()),
+                ),
+            };
+            articles.push(news);
+        }
+    } else {
+        tracing::error!("Failed to fetch news");
+    }
+}
+
+pub struct NewCardData {
+    pub title: String,
+    // pub desc: String,
+    pub description: Option<String>,
+    pub url: String,
 }

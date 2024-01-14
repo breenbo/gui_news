@@ -18,19 +18,23 @@ impl App for Headlines {
             ctx.set_visuals(Visuals::light())
         }
         //
-        self.render_top_panel(ctx);
-        //
-        CentralPanel::default().show(ctx, |ui| {
+        if !self.api_key_initialized {
+            self.render_config(ctx);
+        } else {
+            self.render_top_panel(ctx);
             //
-            render_header(ui, self.config.dark_mode);
-            //
-            ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-                self.render_news_cards(ui);
+            CentralPanel::default().show(ctx, |ui| {
+                //
+                render_header(ui, self.config.dark_mode);
+                //
+                ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+                    self.render_news_cards(ui);
+                });
+                //
+                render_footer(ctx);
+                //
             });
-            //
-            render_footer(ctx);
-            //
-        });
+        }
     }
 }
 
@@ -66,12 +70,16 @@ fn render_header(ui: &mut Ui, dark: bool) {
 }
 
 fn main() {
+    tracing_subscriber::fmt::init();
+    //
     let mut win_options = NativeOptions::default();
     win_options.viewport.inner_size = Some(Vec2::new(540., 960.));
+
+    let headlines = Headlines::new();
 
     let _ = run_native(
         Headlines::name(),
         win_options,
-        Box::new(|cc| Box::new(Headlines::new(cc))),
+        Box::new(|cc| Box::new(headlines.init(cc))),
     );
 }

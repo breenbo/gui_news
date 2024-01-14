@@ -36,6 +36,8 @@ pub struct NewsAPIResponse {
 pub struct Article {
     pub title: String,
     pub url: String,
+    pub description: Option<String>,
+    // pub desc: String,
 }
 
 impl NewsAPIResponse {
